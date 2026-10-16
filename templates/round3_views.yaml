@@ -1,0 +1,17 @@
+# Controlled angle/expression test from one fixed canonical reference. Only the per-test phrase varies.
+# Seed policy: ONE fixed seed for every test, so the angle/expression phrase is the only variable.
+base_prompt: >-
+  She is 28. Preserve her exact facial identity, including bone structure, eye spacing, eye shape, hazel-green eye color,
+  nose, lips, jawline, skin tone, freckles, natural asymmetries and markings. Do not redesign, beautify, rejuvenate or
+  reinterpret her. Keep the same dark chestnut hair, natural skin texture, plain gray T-shirt, plain light-gray background
+  and soft even daylight. Head-and-shoulders portrait, face large in frame, eye-level camera. Single photo, no collage,
+  labels, retouching or accessories.
+negative: "collage, multiple views, text, labels, border, heavy makeup, beauty filter, retouched, plastic skin, cartoon, CGI, deformed eyes"
+seeds: [3101]
+tests:
+  left45: "Her head is turned about 45 degrees to her left (camera right), neutral relaxed expression, mouth closed."
+  right45: "Her head is turned about 45 degrees to her right (camera left), neutral relaxed expression, mouth closed."
+  left90: "Her head is turned 90 degrees to her left (camera right), true side profile, neutral relaxed expression, mouth closed."
+  right90: "Her head is turned 90 degrees to her right (camera left), true side profile, neutral relaxed expression, mouth closed."
+  frontal_neutral: "She faces the camera directly, head straight, neutral relaxed expression, mouth closed."
+  frontal_smile: "She faces the camera directly, head straight, with a natural gentle smile showing a little of her teeth."

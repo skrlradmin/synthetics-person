@@ -55,3 +55,34 @@
 - **Arm B (Edit):** scene and prompt adherence is more varied and more candid. But identity is looser: face shape and age vary, and some outputs look like a different person. B also copies the reference composition (a phone or mirror-selfie pose shows up in about 9/20 scenes). It is over-exposed and over-sharpened with blown highlights and saturated colour, and has occasional skin artifacts.
 - **Verdict:** A is better for identity (works), B is partial. Edit-from-one-reference doesn't replace a LoRA for identity, but it's useful for making new views (see the char01 test).
 - **Next:** use a neutral frontal reference (not a selfie) for Edit, try cfg 2.5–3 or fewer steps to reduce over-processing, consider a Lightning LoRA for speed, and add an ArcFace similarity metric.
+
+## 2026-10-16: char01 view-test evaluation (round 2 images) + reference-conditioning proof
+- **Proof the reference reached conditioning (all 12 images):** shown both in the workflow graph embedded in each PNG and in the ComfyUI `/history` execution records (12/12 `success`).
+  - Node 4 `LoadImage` (canon copy; is_changed sha256 e0e7f62e… = canon) feeds node 5 `FluxKontextImageScale` [4,0].
+  - Node 5 feeds `image1` of node 6 (positive) and node 13 (negative), both `TextEncodeQwenImageEditPlus` with `vae` [3,0].
+  - Node 9 `KSampler` takes positive [6,0] and negative [13,0], on an empty latent (node 8) with denoise 1.0.
+  - In ComfyUI's source, the node VAE-encodes image1 at about 1 MP into `reference_latents` and passes it to the VL text encoder at 384² as a "Picture 1" vision token.
+  - The reference is also in the negative conditioning (the template default).
+- **Config:** Edit-2511 int8 (11b5af5a…), Qwen2.5-VL-7B fp8 (cb5636d8…), qwen_image_vae (a70580f0…); no LoRA; 1088x1408, 25 steps, cfg 4.0, shift 3.1, euler/simple, seeds 2101–2104.
+- **Profiles:** 2/4 face image right (2101, 2103) and 2/4 face image left (2102, 2104), all about 75–85° rather than a true 90°. Nose projection (straight, rounded and slightly upturned tip), lips and hairline are consistent across both directions, and all four are plausible. Chin and jaw definition varies (softer in 2101/2103).
+- **Full body:** about 7.5 heads tall, shoulders slightly wider than the hips, normal torso, legs slightly elongated (a catalog-style bias), relaxed A-pose, hands fine. The face is too small for identity checks. Plausible, not verified.
+- **Artifacts:** a crinkled or wavy synthetic texture on the T-shirt in most edit outputs; skin smoothing and lost freckles and beauty mark in the three-quarter and profile views; eyes drift to brown in the three-quarter views; no anatomy errors.
+- **Reports:** per-image CSV/JSON from `scripts/eval_report.py`. The similarity column is pending (no embedder installed).
+- **Reliable scores:** none yet. The VLM judge failed its negative control and is invalid. A face-embedding cosine (ArcFace) would be the first reliable metric.
+
+## 2026-10-16: Round 3: controlled six-view test (Edit-2511, no LoRA)
+- **Config:** reference = canon (unchanged, sha256 e0e7f62e…); same models as above; 1088x1408 (the canon's resolution), 25 steps, cfg 4.0, shift 3.1, euler/simple.
+  - **Seed policy:** one fixed seed (3101) for all six views. Only the angle/expression phrase varies (`templates/round3_views.yaml`).
+- **Speed:** 43.3, 43.6, 43.7, 43.8, 43.7 and 43.7 s.
+- **Results (visual review):**
+  - frontal_neutral is close to an exact reconstruction (eyes, freckles and features kept).
+  - frontal_smile keeps identity well under the expression change.
+  - left45 turned about 30–35° in the **wrong** direction.
+  - right45 only turned about 10–15°.
+  - left90 turned about 70–75° toward image left; right90 only about 55–60°, also toward image left.
+  - So **"her left/right" wording is not followed** and turn angles fall short. Larger turns bring back the shirt texture artifact and mild hair haloing. Eye colour stays hazel this round (the prompt names it explicitly).
+- **Verdict:** partial. Identity holds best near frontal. Angle control by text alone is unreliable.
+- **Next (top 3 setting changes):**
+  1. Give the face more reference resolution: drop `FluxKontextImageScale` and pass a tight face crop of the canon as `image2` alongside the full image.
+  2. Lower cfg from 4.0 to about 2.5–3.0 to reduce smoothing, synthetic texture and over-processing.
+  3. Use camera-relative wording ("facing image left/right", "nose pointing toward the left edge of the frame"), or an explicit pose/angle control (e.g. a multiple-angles LoRA for Edit-2509/2511) instead of "her left/right". Also consider removing the reference from the negative conditioning.
