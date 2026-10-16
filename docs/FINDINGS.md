@@ -108,3 +108,36 @@
   - Frontal outputs score above the lookalikes: full body 0.76–0.81, smile 0.71, and neutral 0.91 (which is close to a reconstruction).
   - Arm-level verdict: **identity is confirmed only for near-frontal views.** Angled-view identity is unverified.
 - **Next:** pose-binned thresholds (compare angled outputs against angled lookalike negatives), use the multi-view consensus as the reference, and re-score after the reference-crop and cfg changes.
+
+## 2026-10-16: Round 4 / Exp 1: dual-reference face conditioning (Edit-2511 int8, no LoRA)
+- **Goal:** does adding a face crop as `image2`, and/or replacing `FluxKontextImageScale`, improve identity?
+- **Official workflow check:** the Comfy-Org `image_qwen_image_edit_2511_int8` template does the following:
+  - scales image1 with FluxKontextImageScale and passes image2/image3 unscaled;
+  - wraps both conditionings in `FluxKontextMultiReferenceLatentMethod(index_timestep_zero)`;
+  - uses CFGNorm, a VAEEncode of image1 as the latent, and 40 steps at cfg 4.
+  - In our ComfyUI, the 2511 checkpoint's `__index_timestep_zero__` key sets `default_ref_method=index_timestep_zero` automatically, so our graphs already use that method.
+  - `TextEncodeQwenImageEditPlus` resizes **every** image itself: to 384² area for the VL encoder, and to about 1 MP (multiple of 8) for `reference_latents`. So small crops get **upscaled**.
+- **Config:** canon unchanged (sha256 e0e7f62e… before and after). Face crop = an exact slice of canon at x 291–787, y 52–724 (496x672, no resampling), sha256 3ffeae58….
+  - Seeds 4101–4104; 25 steps; cfg 4.0; shift 3.1; euler/simple; output 1088x1408.
+  - Two views per config: frontal, and threeq ("face points toward the left edge of the image").
+  - The prompt names image1 + image2 as two views of the same fictional woman (single-image wording for A/C). Script: `scripts/edit_multiref_exp.py`.
+- **Measured encoder inputs:**
+  - A/B image1 is 1088x1408 → 880x1184 (Kontext preset), giving VL 331x445 and ref latent 880x1184.
+  - C/D image1 is 896x1168 (ImageScaleToTotalPixels at 1 MP, steps of 16), giving VL 338x441 and ref latent 896x1168.
+  - image2 is 496x672, giving VL 330x447 and ref latent **880x1192** (about a 1.8× upscale inside the encoder).
+- **Time and VRAM:** A and C take 43.1–44.3 s per image; B and D take 73.9–74.9 s (+70%). Peak VRAM is 30.1–31.0 GB (ComfyUI keeps a reserved pool, so this mostly reflects the cache).
+- **ArcFace vs canon (mean of 4; min–max):**
+  - frontal: A 0.890 (0.83–0.91), B 0.883 (0.84–0.90), C 0.879 (0.79–0.91), D 0.892 (0.86–0.92).
+  - threeq: A 0.716, B 0.634, C 0.766, D 0.614, but the turn rate differs. Turned (|yaw| ≥ 20°): A 3/4 (one in the opposite direction), B 4/4, C 2/4, D 4/4.
+  - Yaw-matched (turned only, |yaw| 26–42°): A 0.681, B 0.634, C 0.629, D 0.614.
+  - Controls: canon self 1.000; same-prompt lookalikes 0.623–0.659; a different character 0.203.
+- **Visual review** (contact sheets plus selected full-resolution images):
+  - B/D keep hazel-green eyes and freckles best. They place the mark on the correct side (image right) but **multiply it into several moles**. They frame the face tighter (zoomed in), with harsher contrast and a slightly older look.
+  - A/C are softer and smoother, with the mark rarely visible.
+  - The crinkled shirt texture persists in all configs.
+- **Verdict: no winner.**
+  - Frontal identity is statistically indistinguishable across A–D (n=4).
+  - At matched yaw, all configs score at or below the frontal lookalike level, so angled identity isn't confirmed for any config. The dual reference doesn't raise ArcFace and costs +70% time.
+  - The dual reference **does** measurably improve angle compliance: 8/8 consistent turns for B+D versus 5/8 for A+C. It also preserves freckles and eye colour better, but adds extra moles and over-texture.
+  - The ImageScaleToTotalPixels swap (C) shows no measurable benefit.
+- **Next:** Exp 2–4 as planned. Ideas: feed the crop at a larger native size (or crop from a higher-resolution render), try a lower cfg to tame the over-texture, and use pose-matched lookalike controls for angled-identity scoring.
