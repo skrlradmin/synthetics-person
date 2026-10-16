@@ -1,0 +1,15 @@
+# Copy to config.local.yaml (gitignored) and fill in. Never commit the local file.
+comfy_url: "http://127.0.0.1:8188"
+comfy_dir: "/path/to/ComfyUI"
+times_csv: "/path/to/logs/gen_times.csv"
+judge_url: ""            # optional OpenAI-compatible multimodal endpoint for identity scoring
+models:
+  unet: "qwen_image_2.1_int8_convrot.safetensors"
+  clip: "qwen3vl_8b_int8_convrot.safetensors"
+  vae: "qwen_image_2.1_vae_bf16.safetensors"
+character:
+  lora: "your_character_lora.safetensors"   # empty = no LoRA
+  lora_strength: 0.8
+  trigger: "yourtrigger_person"
+  appearance: "a fictional adult woman in her early 30s, ..."   # describe a FICTIONAL person only
+  reference_image: "/path/to/reference.png"

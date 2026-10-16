@@ -1,0 +1,32 @@
+# Generic template for a FICTIONAL adult character. Do not describe or reference a real person.
+id: char_example_01
+display_name: "Example Character"
+fictional: true
+age: 30            # must be >= 21
+trigger_token: "exchar_person"
+appearance:
+  build: ""
+  hair: ""
+  eyes: ""
+  skin: ""
+  distinguishing_features: []
+style:
+  wardrobe: []
+  settings: []
+  camera: "smartphone, candid, natural light"
+generation:
+  base_model: ""
+  lora: ""
+  lora_strength: 0.8
+  resolution: [1088, 1408]
+  steps: 25
+  cfg: 1.0
+  sampler: euler
+  scheduler: simple
+  negative_prompt: ""
+dataset:
+  source: "synthetic only"
+  image_count: 0
+consent_and_compliance:
+  real_person_likeness: false
+  notes: ""

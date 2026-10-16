@@ -1,0 +1,37 @@
+# weights
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.gguf
+*.onnx
+# images / video
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.mov
+*.webm
+# data / outputs
+outputs/
+output/
+models/
+datasets/
+# secrets
+.env
+.env*
+*.key
+*.pem
+*token*
+*secret*
+# misc
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+config.local.yaml
+*.local.yaml
