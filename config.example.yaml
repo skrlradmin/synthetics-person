@@ -13,3 +13,10 @@ character:
   trigger: "yourtrigger_person"
   appearance: "a fictional adult woman in her early 30s, ..."   # describe a FICTIONAL person only
   reference_image: "/path/to/reference.png"
+models_edit:             # for scripts/idexp_edit.py (Qwen-Image-Edit-2511)
+  unet: "qwen_image_edit_2511_int8_convrot.safetensors"
+  clip: "qwen_2.5_vl_7b_fp8_scaled.safetensors"
+  vae: "qwen_image_vae.safetensors"
+  steps: 25
+  cfg: 4.0
+  shift: 3.1
