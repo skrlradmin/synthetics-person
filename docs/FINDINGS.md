@@ -86,3 +86,25 @@
   1. Give the face more reference resolution: drop `FluxKontextImageScale` and pass a tight face crop of the canon as `image2` alongside the full image.
   2. Lower cfg from 4.0 to about 2.5–3.0 to reduce smoothing, synthetic texture and over-processing.
   3. Use camera-relative wording ("facing image left/right", "nose pointing toward the left edge of the frame"), or an explicit pose/angle control (e.g. a multiple-angles LoRA for Edit-2509/2511) instead of "her left/right". Also consider removing the reference from the negative conditioning.
+
+## 2026-10-16: ArcFace identity scores for char01 (InsightFace, analysis only)
+- **Tooling:** a separate isolated venv (not ComfyUI's Python): insightface 2.1, onnxruntime 1.31.0 (CPU provider; the GPU wheel installed but the CPU package took precedence, which is fine for about 26 images), numpy 2.5.4, opencv 5.0.
+  - Model pack buffalo_l: det_10g `5838f7fe…5b91`, w600k_r50 ArcFace `4c06341c…9e43`, 2d106det `f001b856…dbf`, 1k3d68 `df5c06b8…c45cc`, genderage `4fde69b1…52fb`.
+  - **License:** InsightFace pretrained models are non-commercial research only.
+- **Method:** `scripts/face_scores.py`. Largest face, cosine of normalized ArcFace embeddings vs canon, detection score, box size and yaw/pitch from 3D landmarks. |yaw| > 45° is marked unreliable (profiles).
+- **Controls (vs canon):**
+  - canon vs itself and the s1103 candidate: 1.000.
+  - Other char01 candidates (same prompt, different seeds: s1101/s1102/s1105/s1108): 0.659, 0.623, 0.634, 0.632.
+  - A different character (two baseline images): 0.203 and 0.369.
+- **Results (cosine; yaw):**
+  - three_quarter 2101–2104: 0.677 (−31°), 0.655 (+32°), 0.686 (+29°), 0.674 (−38°).
+  - profile 2101–2104: 0.383 (77°), 0.570 (−51°), 0.455 (63°), 0.499 (−69°). All UNRELIABLE (profiles).
+  - full_body 2101–2104: 0.764, 0.775, 0.778, 0.813 (frontal; faces only about 104x143 px).
+  - round3: frontal_neutral 0.910; right45 0.900 (it actually came out about 2° yaw, nearly frontal); frontal_smile 0.708; left45 0.714 (−28°); left90 0.566 (−61°, unreliable); right90 0.593 (−48°, unreliable).
+- **Detection:** 0 failures across 26 images (scores 0.71–0.91).
+- **Interpretation:**
+  - The scale runs from about 0.2–0.37 for an unrelated person, through about 0.62–0.66 for same-prompt lookalikes, to about 0.90+ for a near-copy.
+  - The three-quarter views (0.66–0.71) score at about the same level as same-prompt lookalikes, so ArcFace **cannot confirm** the identity was kept at about 30° yaw. ArcFace scores also drop with yaw, so this is partly a pose effect. No pose-matched ground truth exists to separate the two.
+  - Frontal outputs score above the lookalikes: full body 0.76–0.81, smile 0.71, and neutral 0.91 (which is close to a reconstruction).
+  - Arm-level verdict: **identity is confirmed only for near-frontal views.** Angled-view identity is unverified.
+- **Next:** pose-binned thresholds (compare angled outputs against angled lookalike negatives), use the multi-view consensus as the reference, and re-score after the reference-crop and cfg changes.
