@@ -170,3 +170,40 @@ Findings:
 - Turned-face cosine (0.58–0.80) is still in the lookalike band → identity across angles remains the open problem; no arm passes the hard identity criterion reliably at 3/4.
 - Recommendation: config A + official template (CFGNorm, encoded latent, 40 steps) at cfg 2.5 as the new baseline; B adds ~85% time without a measured identity gain at 3/4.
 - bf16/fp8 assessment (no download): bf16 Edit-2511 ≈40.9 GB, exceeds 32 GB VRAM and would need RAM offload on ~59 GB RAM (slow, risky); fp8mixed (~20.5 GB) is not expected to beat int8 convrot (community ranking BF16 > INT8 convrot > fp8 > NVFP4). Only bf16 is a plausible quality step; needs approval (>20 GB). A bf16 text encoder (~16.6 GB) is a possible minor step.
+
+## Round 4 / Exp 3 — camera angle: prompt-only vs Multiple-Angles LoRA (Edit-2511 int8)
+
+Base: Exp 2 winner (config A, official template: CFGNorm 1.0, VAE-encoded image1 latent 880x1184, 40 steps, cfg 2.5).
+Script: `scripts/edit_angle_exp.py` (new workflow copy; production workflow untouched).
+LoRA: fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA (targets Edit-2511 specifically; Apache-2.0; 295 MB; sha256 42426ded…6765; rank 16).
+Compatibility with the int8 convrot build: 840/840 LoRA targets map to model weights (diffusers `transformer.*` names);
+ComfyUI reports "840 patches attached" with the built-in LoraLoaderModelOnly; no custom nodes needed
+(the optional ComfyUI-qwenmultiangle camera-widget node only formats the prompt; not installed).
+LoRA prompt = its trained phrasing only: `<sks> {azimuth} eye-level shot medium shot`, azimuths front view /
+front-left quarter view / front-right quarter view / left side view / right side view. The published workflow uses a
+4-step Lightning LoRA at cfg 1 (distilled); not run (quality-first; would need another download). Card recommends strength 0.8–1.0 (start 0.9).
+Prompt-only = identity prompt + frame-relative wording ("face points toward the left/right edge of the image", 45° / 90° full profile).
+Yaw sign verified visually: negative = face points image-left. ArcFace unreliable beyond |yaw| ≈ 45°.
+
+| Arm | View | Yaw per seed 4101–4104 | Correct direction | Mean cosine |
+|---|---|---|---|---|
+| Prompt | front | -1, -1, -1, -1 | 4/4 | 0.928 |
+| Prompt | L45 | -48, 21, -32, -26 | 3/4 | 0.747 |
+| Prompt | R45 | -16, 32, -1, -14 | 1/4 | 0.814 (mostly not turned) |
+| Prompt | L90 | -70, -73, -60, -74 | 4/4 | 0.520* |
+| Prompt | R90 | -71, 66, 72, 85 | 3/4 | 0.504* |
+| LoRA 1.0 | front | -1, -1, -2, -1 | 4/4 | 0.941 |
+| LoRA 1.0 | "front-left quarter" | -40, 37, -44, 52 | magnitude 4/4, side follows seed | 0.612 |
+| LoRA 1.0 | "front-right quarter" | -42, 40, -43, 54 | magnitude 4/4, side follows seed | 0.607 |
+| LoRA 1.0 | "left side" | -75, 77, 73, 81 | magnitude 4/4, side follows seed | 0.314* |
+| LoRA 1.0 | "right side" | -74, -73, -72, 84 | magnitude 4/4, side follows seed | 0.494* |
+| LoRA 0.8 (2 seeds) | front / quarter / side | -1,-1 / ±40 / -74, 29 | side follows seed (4101 left, 4102 right) | 0.946 / 0.62 / 0.57* |
+(* |yaw| > 45°, ArcFace unreliable.) Time ≈51.5 s/img for all arms (LoRA adds no measurable time); peak VRAM 30.3 GB; min available RAM 50.5 GB.
+
+Findings:
+- The LoRA gives accurate rotation magnitude (quarter ≈40–54°, side ≈72–84°, real camera orbit incl. body) but **ignores left vs right**: the side is set by the seed (4101 always image-left, 4102 always image-right), so azimuth phrases are not a direction control on this build/input. Lowering to 0.8 changes nothing material.
+- Identity at 45° drops with the LoRA (cos ≈0.57–0.67, inside the lookalike band 0.62–0.66) vs prompt-only (0.65–0.80) → per quality-first, the LoRA quarter views are identity hard-rejects more often.
+- Prompt-only is direction-correct for image-left and for 90° profiles, but weak for image-right at 45° (bias toward frontal/left).
+- Fronts: hazel eyes, freckles, natural skin kept in all arms; no anatomy hard rejects seen. Beauty-mark side is not resolvable reliably at this output scale; not scored.
+- Mirroring an image-left result to get image-right is not acceptable (flips facial asymmetry and the beauty mark).
+- Best angle approach for now: prompt-only on the Exp 2 template; use seed selection + ArcFace/yaw filtering for the needed side. The angle LoRA is not adopted (keep for possible future tests: elevation/low-angle, or with a frame-relative direction phrase added).
