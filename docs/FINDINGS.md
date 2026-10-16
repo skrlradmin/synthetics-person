@@ -22,10 +22,27 @@
 - **Verdict:** works.
 - **Next:** pick a canonical seed, then build a multi-view dataset for the char01 LoRA.
 
-## 2026-10-16: Identity consistency, arm A (LoRA only): IN PROGRESS
-- **Config:** base model above + private character LoRA at 0.8, 20 varied SFW smartphone scenes (`scripts/idexp.py`), seeds 9001–9020, 1088x1408, 25 steps.
-- **Results so far:** 20/20 generated at 8.0–8.5 s each. VLM-judge scoring is pending; the first attempt returned no parsable score.
+## 2026-10-16: Identity consistency, arm A (LoRA only): generation done, scoring INCONCLUSIVE
+- **Config:** base model above + private character LoRA at 0.8, 20 varied SFW smartphone scenes (`scripts/idexp.py`), seeds 9001–9020, 1088x1408, 25 steps, cfg 1.0, euler/simple.
+- **Results:** 20/20 generated at 8.0–8.5 s each.
+- **VLM judge:** a local 120B VLM rated "same person" on 1–10 against a baseline reference. The 20 scenes scored 9–10 (mean about 9.3). However, the **negative control** (a completely different character, char01 s1101) also scored **10**. The judge does not discriminate identity, so the scores are not valid.
+  - The first judge run returned no scores because max_tokens=400 truncated the model's reasoning; fixed by raising it to 2000.
+- **Verdict:** generation works; identity measurement fails.
+- **Next:** use a face-embedding metric (ArcFace/insightface, not installed yet) or human review. Further VLM scoring is SKIPPED because the VLM server was shut down on 2026-10-16 to free VRAM.
 
-## 2026-10-16: Identity consistency, arm B (LoRA + Qwen-Image-Edit reference): BLOCKED, then approved
-- Blocked because no Edit weights were installed. Needed: qwen_image_edit_2511_int8_convrot (20.5 GB), qwen_2.5_vl_7b_fp8_scaled (9.38 GB), qwen_image_vae (0.25 GB). The download is now approved and running.
-- Note: the 2.1 LoRA probably won't load on Edit-2511, which uses a different base architecture.
+## 2026-10-16: Qwen-Image-Edit-2511 installed
+- Downloaded from Comfy-Org/Qwen-Image-Edit_ComfyUI and Comfy-Org/Qwen-Image_ComfyUI. Every sha256 matches the Hugging Face LFS oid:
+  - qwen_image_edit_2511_int8_convrot.safetensors (20.5 GB): `11b5af5ac601821d73930c84846c9a158e67177356daf927ce1c8d10f3963829`
+  - qwen_2.5_vl_7b_fp8_scaled.safetensors (9.38 GB): `cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4`
+  - qwen_image_vae.safetensors (0.25 GB): `a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f`
+- License: Apache-2.0 (Qwen-Image-Edit-2511, Qwen2.5-VL).
+- The local VLM server (about 15 GB VRAM) was stopped to free memory; VRAM dropped from 31.2 GB to 16.1 GB.
+
+## 2026-10-16: char01 identity preservation with Qwen-Image-Edit-2511 (no LoRA)
+- **Goal:** can Edit-2511 produce new views of char01 from one canonical image while keeping the identity?
+- **Config:** reference = char01 canon (candidate s1103, sha256 `e0e7f62e92b35be724854b92a8c6c7ee6ccede158372f0264f43227a24c646e4`); Edit-2511 int8 (hash above); no LoRA; 1088x1408, 25 steps, cfg 4.0, shift 3.1, euler/simple; seeds 2101–2104. Prompts: `templates/view_tests.yaml`; script: `scripts/edit_views.py`.
+- **Speed:** 43.6–51.4 s per image (cfg>1 means two passes; the first image includes model load).
+- **three_quarter:** pose correct in 4/4. Overall likeness and hair are good, and nose, lips and jaw are close. Drift: eyes turn brown instead of hazel-green; the beauty mark and freckles mostly disappear; skin is slightly smoother and softer (mild beautification); no aging. Verdict: partial.
+- **profile:** a true 90° profile in 4/4. Nose and jaw are plausible, but this can't be verified against a frontal-only reference; no beauty mark visible. Verdict: partial (plausible).
+- **full_body:** 4/4 full-body, same outfit plus jeans. The face is too small to judge. This is a **plausible extrapolation, not verified body preservation**. Verdict: plausible.
+- **Next:** strengthen eye-colour and marking cues in the prompt, try a higher-resolution reference or face crop, and add a face-embedding metric.

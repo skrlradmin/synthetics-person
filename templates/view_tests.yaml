@@ -1,0 +1,13 @@
+# Identity-preservation view tests for Qwen-Image-Edit from a single canonical reference.
+base_prompt: >-
+  She is 28. Preserve her exact facial identity, including bone structure, eye spacing, eye shape and color, nose, lips,
+  jawline, skin tone, natural asymmetries and markings. Do not redesign, beautify, rejuvenate or reinterpret her. Keep the
+  same dark chestnut hair, natural skin texture, gray T-shirt, neutral gray background and soft even daylight. Her
+  expression stays neutral and relaxed, and both eyes stay anatomically consistent. Each output is a single photo with no
+  collage, labels, retouching or accessories.
+negative: "collage, multiple views, text, labels, border, heavy makeup, beauty filter, retouched, plastic skin, cartoon, CGI, deformed eyes"
+seeds: [2101, 2102, 2103, 2104]
+tests:
+  three_quarter: "Show her with her head turned about 45 degrees toward camera left, three-quarter view, head-and-shoulders."
+  profile: "Show her in a true 90-degree side profile, head-and-shoulders."
+  full_body: "Show her full body, standing upright, head to feet visible, same outfit with plain jeans and simple shoes."
