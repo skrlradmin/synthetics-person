@@ -207,3 +207,10 @@ Findings:
 - Fronts: hazel eyes, freckles, natural skin kept in all arms; no anatomy hard rejects seen. Beauty-mark side is not resolvable reliably at this output scale; not scored.
 - Mirroring an image-left result to get image-right is not acceptable (flips facial asymmetry and the beauty mark).
 - Best angle approach for now: prompt-only on the Exp 2 template; use seed selection + ArcFace/yaw filtering for the needed side. The angle LoRA is not adopted (keep for possible future tests: elevation/low-angle, or with a frame-relative direction phrase added).
+
+## Round 4 / Exp 4 + deliverable — LoRA pilot plan (no generation, no training)
+See `docs/round4_summary.md`.
+- Proposed a 24-slot curated pilot set plus 4 held-out validation images. All are sourced from Exp 2 template edits with prompt-only angles and N-seed overgeneration.
+- ArcFace thresholds per yaw band are calibrated from the controls: 0.85 (<15°), 0.75 (15–35°), 0.68 (35–50°), 0.45 floor + manual review (>50°). Near-duplicate rule: cosine ≥ 0.97 and pHash ≤ 8.
+- Trainer: ai-toolkit `qwen_image_2` supports 2.1 (pin a commit at or after 07abdbe); musubi-tuner does not. Train on base 2.1, not the CFG-distilled Turbo.
+- License: Qwen-Image-2.1 is research-only, so a char01 LoRA trained on it inherits the non-commercial restriction. Edit-2511, the Qwen-Image VAE, the Qwen2.5-VL / Qwen3-VL upstreams and the fal angle LoRA are Apache-2.0. InsightFace models are non-commercial.
