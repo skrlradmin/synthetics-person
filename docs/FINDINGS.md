@@ -249,3 +249,43 @@ Facts, from primary sources: the BFL docs (docs.bfl.ml/flux_3/flux3_image_klein,
   2. HF license acceptance and a token on the GPU host.
   3. Downloads: the quality-first set (Base bf16 11.08 + Klein bf16 11.08 + TE bf16 8.88 + upsampler int8 9.75 + VAE 0.34) is **41.1 GB**. The minimum Base-only bf16 set (Base + TE + VAE) is **20.30 GB**. Both exceed the 20 GB limit.
   All three need owner approval. Step 2 (FLUX 3 vs Qwen) has not been run.
+
+## Decision: FLUX 3 Klein skipped (2026-10-16)
+By owner decision, FLUX 3 is not being pursued. No ComfyUI copy or update and no downloads. The Step 1 facts above stay for reference.
+
+## Qwen-Image-2512 as the commercial production / LoRA backbone (report only; no downloads, installs or changes)
+Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Image_ComfyUI and Comfy-Org/Qwen-Image-Edit_ComfyUI (file trees with LFS sha256), kohya-ss/musubi-tuner docs/qwen_image.md, and ostris/ai-toolkit (commit 4d5a649 and the example configs).
+- **Repo and license.** `Qwen/Qwen-Image-2512` (rev 25468b98, created 2025-12-30) is **Apache-2.0** and not gated, so commercial use is allowed. Trained LoRAs carry no upstream non-commercial restriction.
+- **Architecture.** QwenImageTransformer2DModel: 60 dual-stream layers, 24 heads × 128, joint_attention_dim 3584, in 64 / out 16 channels, patch 2.
+  - The config is **identical to Qwen-Image v1**.
+  - Edit-2511 has the same shape plus `zero_cond_t: true` (the edit reference-timestep variant).
+  - It is unrelated to Qwen-Image 2.1, which has 32 single-stream layers, a Qwen3-VL text encoder and its own VAE.
+- **Shared files: we already have the text encoder and VAE.**
+  - In the HF repos, the 2512 and Edit-2511 text_encoder shards (d725335e…, b1830db6…, 09c1807c…, 5dd06833…) and VAE (0c8bc8b7…) have the same sha256.
+  - Locally, our `qwen_2.5_vl_7b_fp8_scaled` (cb5636d8…) and `qwen_image_vae` (a70580f0…) match the Comfy-Org files byte-for-byte.
+  - **Only the 2512 DiT is missing.**
+- **ComfyUI.** v0.39.0-47 supports the Qwen-Image architecture natively; the same model class already runs Edit-2511. A 2512 DiT loads with the core UNETLoader, so no custom nodes and no update are needed. (Inferred from the identical config; not load-tested, since there were no downloads.)
+- **ComfyUI DiT files** (Comfy-Org/Qwen-Image_ComfyUI, split_files/diffusion_models):
+  - `qwen_image_2512_bf16` 40.86 GB (sha cbf55390…)
+  - `qwen_image_2512_fp8_e4m3fn` 20.43 GB (sha 5dc80554…)
+  - No official int8_convrot or fp8mixed build of 2512 exists; v1 has fp8mixed, fp8_hq and nvfp4. Community GGUF, FP8 and nf4 repacks exist but are not Comfy-Org official.
+- **Trainers:**
+  - **ai-toolkit:** UI arch `qwen_image:2512` (added in 4d5a649, v0.7.15, 2025-12-31), with model `arch: qwen_image` and `name_or_path: Qwen/Qwen-Image-2512`. Defaults: quantize on (qfloat8, or uint4/uint3 with accuracy-recovery adapters, commits 6870ab4 and 926097a), quantize_te qfloat8, low_vram, cached text embeddings, gradient checkpointing, adamw8bit, lr 1e-4, rank 16. The example `train_lora_qwen_image_24gb.yaml` targets 24 GB. A native 1328 training resolution was added in ca72eb1. It downloads the diffusers repo (≈57.7 GB) unless given local paths.
+  - **musubi-tuner (v0.3.6, 2026-09-27):** `qwen_image_train_network.py --network_module networks.lora_qwen_image`, `--model_version original`. The doc doesn't name 2512, but the architecture is identical; this is an inference, so verify by loading. It needs the **bf16** DiT and the **bf16** text encoder `qwen_2.5_vl_7b.safetensors` (16.58 GB); fp8_scaled and fp8_e4m3fn files are rejected.
+    - Documented VRAM at 1024² with bs1 and gradient checkpointing: 42 GB without options, **30 GB with `--fp8_base --fp8_scaled`**, 24 GB with `+ --blocks_to_swap 16`. 64 GB system RAM is recommended for block swapping.
+- **32 GB feasibility.** Training fits: musubi fp8_base/fp8_scaled at 30 GB, or more safely with blocks_to_swap 16 at 24 GB; ai-toolkit qfloat8 with low_vram at about 24 GB or less. RAM (59 GB total, ~49 GB available) is slightly under musubi's 64 GB recommendation for block swap; keep swap counts low.
+- **Highest-quality config that fits:**
+  - **Inference:** `qwen_image_2512_bf16` with ComfyUI's dynamic partial offload. The 40.9 GB doesn't fit in 32 GB VRAM, so it will be slower, but it is lossless. The fallback, `fp8_e4m3fn`, fits fully in VRAM.
+  - Settings from the model card: 50 steps, true CFG 4.0, native resolutions 1328², 1104×1472 (3:4) or 928×1664 (9:16), with its negative prompt. The Lightning/Turbo LoRAs are distilled and are skipped under quality-first.
+  - **Training:** musubi with bf16 DiT + bf16 text encoder and `--fp8_base --fp8_scaled` (or + `--blocks_to_swap 16`) at 1024–1328, or ai-toolkit `qwen_image:2512` with qfloat8.
+- **Downloads needed** (VAE and fp8 text encoder already present):
+
+  | Set | Files | Size |
+  |---|---|---|
+  | Inference, minimum | fp8 DiT | 20.43 GB |
+  | Inference, quality-first | bf16 DiT | 40.86 GB |
+  | Training (musubi) | bf16 DiT + bf16 TE | 57.44 GB |
+  | Recommended single set | bf16 DiT + bf16 TE (bf16 DiT also used for inference) | **57.44 GB** |
+  | Optional fp8 DiT for fast iteration | on top of the recommended set | +20.43 GB = 77.87 GB |
+
+  Disk has ~1.2 TB free. All of these are over 20 GB, so they need approval, as does installing a trainer (new Python environment).
