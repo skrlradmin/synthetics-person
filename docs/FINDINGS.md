@@ -289,3 +289,24 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
   | Optional fp8 DiT for fast iteration | on top of the recommended set | +20.43 GB = 77.87 GB |
 
   Disk has ~1.2 TB free. All of these are over 20 GB, so they need approval, as does installing a trainer (new Python environment).
+
+## Qwen-Image-2512 fp8 load test (approved download; no LoRA, no trainer)
+- **File:** downloaded `qwen_image_2512_fp8_e4m3fn.safetensors` (20.43 GB) as a new file. sha256 5dc80554…876b **matches HF**.
+- **Script:** `scripts/t2i_2512_loadtest.py` (new). Uses the existing `qwen_2.5_vl_7b_fp8_scaled` text encoder and `qwen_image_vae`, core nodes only (UNETLoader, CLIPLoader type qwen_image, ModelSamplingAuraFlow 3.1, KSampler euler/simple).
+- **Settings:** model card's: 50 steps, cfg 4.0, 1104x1472, official negative prompt. The prompt is char01's canonical description text. Seeds 5101 and 5102.
+- **Load:** succeeded on ComfyUI v0.39.0-47 with no update or custom nodes. The DiT staged as QwenImage, 19.5 GB.
+- **Performance:**
+
+  | Seed | Time | Peak VRAM | Min RAM available |
+  |---|---|---|---|
+  | 5101 | 83.3 s (incl. model load) | 29.7 GB | 51.0 GB |
+  | 5102 | 82.8 s | 29.7 GB | 57.0 GB |
+
+- **Visual:**
+  - Strongly photographic: real pores, fine forehead lines, natural flyaway hair, hazel-green eyes, faint freckles, no waxy smoothing. No anatomy or texture defects.
+  - Prompt deviations:
+    - Both read older than 28 (mid-30s look).
+    - Framing came out head-and-shoulders rather than the canonical standing pose.
+    - The s5101 beauty mark sits on the image-left cheek (subject's right), the wrong side vs spec. s5102's is faint.
+  - As expected for t2i without a LoRA, the faces are a different person from canon s1103. This confirms the need for a character LoRA.
+- Canon sha256 unchanged.
