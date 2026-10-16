@@ -214,3 +214,38 @@ See `docs/round4_summary.md`.
 - ArcFace thresholds per yaw band are calibrated from the controls: 0.85 (<15°), 0.75 (15–35°), 0.68 (35–50°), 0.45 floor + manual review (>50°). Near-duplicate rule: cosine ≥ 0.97 and pHash ≤ 8.
 - Trainer: ai-toolkit `qwen_image_2` supports 2.1 (pin a commit at or after 07abdbe); musubi-tuner does not. Train on base 2.1, not the CFG-distilled Turbo.
 - License: Qwen-Image-2.1 is research-only, so a char01 LoRA trained on it inherits the non-commercial restriction. Edit-2511, the Qwen-Image VAE, the Qwen2.5-VL / Qwen3-VL upstreams and the fal angle LoRA are Apache-2.0. InsightFace models are non-commercial.
+
+## FLUX 3 Image Klein: Step 1 investigation (2026-10-16; no install, no generation)
+Facts, from primary sources: the BFL docs (docs.bfl.ml/flux_3/flux3_image_klein, release notes), the HF repos (black-forest-labs/flux-3-image-klein, -base, -comfy, -pup), the HF Diffusers blog (huggingface.co/blog/flux-3), Comfy-Org/ComfyUI commits, and the ostris/ai-toolkit repo.
+- **Models.** Released 2026-10-15. Both are 5.6B DiTs:
+  - **Klein**: step-distilled, 16 steps, CFG 1.
+  - **Klein Base**: undistilled, 50 steps, CFG 3.5. This is the one for fine-tuning and LoRA.
+  - One model covers t2i, editing and multi-reference (up to 10 refs), plus bounding-box layout. Max resolution is 4K.
+  - Text encoder: Qwen3-VL-4B-Instruct. VAE: the FLUX.2 AE (128 latent channels).
+  - BFL says not to use it without its prompt upsampler (flux-3-image-klein-pup, Qwen3.5-9B based, Apache-2.0).
+- **ComfyUI repack sizes:**
+  - Klein / Klein Base: 11.08 GB each in bf16, 5.81 GB int8_convrot, 5.26 GB nvfp4.
+  - Text encoder: 8.88 GB bf16, 4.86 GB int8.
+  - Upsampler: 9.75 GB int8, 6.72 GB w4a8.
+  - VAE: 0.34 GB.
+  - Diffusers package: fp8r 6.3 GB, nvfp4 5.3 GB.
+- **ComfyUI.** Native support arrived in "Support Flux3-image" (20b4606, 2026-10-15), released in v0.41.0. **Our v0.39.0-47 (06c67806, 2026-10-12) has no FLUX 3 code.** Running it needs a ComfyUI core update.
+- **Access.** All Klein repos are **gated** (license acceptance on an HF account). No HF token is configured on the GPU host, so the files can't be downloaded yet.
+- **License (FLUX Kommunity License v1.0).**
+  - It is non-commercial by default.
+  - §2.a: "Qualifying Users" (gross annualized revenue below US$5M, affiliates included) may use outputs commercially and run the model in production only to generate those outputs.
+  - Using the model "to train, fine tune, or distill other models for commercial use" is defined as not non-commercial. A commercial character LoRA therefore needs a BFL commercial license (bfl.ai/licensing), unless §2.a is read to cover it. Legal review needed.
+- **Trainers:**
+  - **ai-toolkit**: `arch: flux3`, merged in PR #1078 on 2026-10-15, with fixes 438595b, 12395a1 and 0947356 the same day. It trains Base only; distilled and pre-quantized packages are rejected and the toolkit quantizes itself (int8_convrot supported).
+  - **Diffusers**: official LoRA scripts for t2i and edit (gradient checkpointing, cached latents, 8-bit Adam, rank 16, 1024 px).
+  - **musubi-tuner, diffusion-pipe, kohya sd-scripts**: no FLUX 3 support found.
+- **Memory.** Diffusers inference peak (H100) is 20.7 GiB in bf16, 16.3 GiB in fp8r and 15.3 GiB in nvfp4. A LoRA-training VRAM figure is **not published**. Estimate: 5.6B bf16 (≈11 GB) plus cached text embeddings and gradient checkpointing should fit in 32 GB; unverified.
+- **Highest-quality feasible inference on 32 GB:**
+  - Klein Base bf16, 50 steps, CFG 3.5, bf16 text encoder, prompt upsampler, about 1 MP to 2 MP. No offloading needed.
+  - The distilled Klein bf16 (16 steps, CFG 1) as a second arm.
+  - BFL publishes no sampler name for ComfyUI; the official workflows are behind the gate.
+- **Blockers (stopped before Step 2):**
+  1. A ComfyUI core update to v0.41.x or later (a change to the production install).
+  2. HF license acceptance and a token on the GPU host.
+  3. Downloads: the quality-first set (Base bf16 11.08 + Klein bf16 11.08 + TE bf16 8.88 + upsampler int8 9.75 + VAE 0.34) is **41.1 GB**. The minimum Base-only bf16 set (Base + TE + VAE) is **20.30 GB**. Both exceed the 20 GB limit.
+  All three need owner approval. Step 2 (FLUX 3 vs Qwen) has not been run.
