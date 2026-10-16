@@ -12,7 +12,11 @@ Tooling and notes for generating **fully fictional, synthetic adult characters**
    `python scripts/gen_canon.py --prompt-file templates/canon_prompt.txt --neg-file templates/canon_negative.txt --out-dir out/char01 --seeds 1101 1102 1103`
 5. Identity-consistency test with a character LoRA: `OUT_SUB=idexp/lora_only python scripts/idexp.py`
 
+## Quality-first priority
+Outputs are judged in this order: identity across angles, then photographic realism, then anatomy, then prompt adherence, then resolution/artifacts. Identity failures, major anatomy defects and obvious synthetic artifacts are hard rejects. See [docs/acceptance_criteria.md](docs/acceptance_criteria.md).
+
 ## Docs
+- [docs/acceptance_criteria.md](docs/acceptance_criteria.md): quality-first acceptance criteria and hard-reject rules
 - [docs/FINDINGS.md](docs/FINDINGS.md): experiment log
 - [docs/licenses.md](docs/licenses.md): model licenses
 - [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md) · [CONTRIBUTING.md](CONTRIBUTING.md)

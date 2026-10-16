@@ -141,3 +141,32 @@
   - The dual reference **does** measurably improve angle compliance: 8/8 consistent turns for B+D versus 5/8 for A+C. It also preserves freckles and eye colour better, but adds extra moles and over-texture.
   - The ImageScaleToTotalPixels swap (C) shows no measurable benefit.
 - **Next:** Exp 2–4 as planned. Ideas: feed the crop at a larger native size (or crop from a higher-resolution render), try a lower cfg to tame the over-texture, and use pose-matched lookalike controls for angled-identity scoring.
+
+## Round 4 / Exp 2 — cfg sweep + official-template quality arm (Edit-2511 int8)
+
+Setup: config A = image1 (canon) only; config B = image1 + face crop as image2. Seeds 4101–4104,
+views frontal + three-quarter, same prompts/dims. Sweep: 25 steps, cfg 4.0 (from Exp1) / 3.0 / 2.5.
+Quality arm (official 2511 template): CFGNorm(1.0), VAE-encoded image1 start latent (880x1184), 40 steps,
+at the best sweep cfg per config (A 2.5, B 3.0). Script: `scripts/edit_cfg_exp.py`.
+ArcFace (buffalo_l) cosine vs canon; lookalike controls ≈0.62–0.66; "turned" = |yaw| ≥ 20° on the three-quarter view.
+
+| Arm | Frontal cos mean (min) | 3/4 cos mean (min) | 3/4 turned | s/img |
+|---|---|---|---|---|
+| A 25s cfg4 | 0.890 (0.832) | 0.716 (0.650) | 3/4 | ~44 |
+| A 25s cfg3 | 0.905 (0.857) | 0.804 (0.669) | 2/4 | 43.6 |
+| A 25s cfg2.5 | 0.902 (0.836) | 0.832 (0.692) | 2/4 | 43.7 |
+| **A q40 cfg2.5** | **0.928 (0.904)** | 0.747 (0.645) | **4/4** | 51.5 |
+| B 25s cfg4 | 0.883 (0.838) | 0.634 (0.573) | 4/4 | ~74 |
+| B 25s cfg3 | 0.903 (0.882) | 0.715 (0.603) | 3/4 | 74.2 |
+| B 25s cfg2.5 | 0.906 (0.888) | 0.743 (0.607) | 3/4 | 74.1 |
+| B q40 cfg3 | 0.925 (0.907) | 0.683 (0.580) | 4/4 | 95.8 |
+
+Peak VRAM ≈30.3 GB, min available RAM ≈50.5 GB for all arms.
+
+Findings:
+- Lower cfg raises 3/4 cosine mostly by *not turning* (cosine of untouched frontal-ish faces); it is a prompt-adherence regression, not an identity gain.
+- The official template (CFGNorm + encoded start latent + 40 steps) gives the best frontal identity of any arm and 4/4 turn compliance, while keeping turned-face cosine above every cfg4 arm. Framing varies (template follows the Kontext-resized image1; some outputs are tighter crops; one B frontal crops the hairline).
+- Visual: both quality arms keep hazel eyes and freckles with natural pore texture; B keeps more freckles/marks but still tends to multiply the beauty mark; A renders it inconsistently. Shirt texture artifacts milder than cfg4. No hard-reject anatomy defects seen; B q40 s4102 3/4 is a borderline framing/crop reject.
+- Turned-face cosine (0.58–0.80) is still in the lookalike band → identity across angles remains the open problem; no arm passes the hard identity criterion reliably at 3/4.
+- Recommendation: config A + official template (CFGNorm, encoded latent, 40 steps) at cfg 2.5 as the new baseline; B adds ~85% time without a measured identity gain at 3/4.
+- bf16/fp8 assessment (no download): bf16 Edit-2511 ≈40.9 GB, exceeds 32 GB VRAM and would need RAM offload on ~59 GB RAM (slow, risky); fp8mixed (~20.5 GB) is not expected to beat int8 convrot (community ranking BF16 > INT8 convrot > fp8 > NVFP4). Only bf16 is a plausible quality step; needs approval (>20 GB). A bf16 text encoder (~16.6 GB) is a possible minor step.
