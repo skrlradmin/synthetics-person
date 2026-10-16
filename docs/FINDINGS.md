@@ -46,3 +46,12 @@
 - **profile:** a true 90° profile in 4/4. Nose and jaw are plausible, but this can't be verified against a frontal-only reference; no beauty mark visible. Verdict: partial (plausible).
 - **full_body:** 4/4 full-body, same outfit plus jeans. The face is too small to judge. This is a **plausible extrapolation, not verified body preservation**. Verdict: plausible.
 - **Next:** strengthen eye-colour and marking cues in the prompt, try a higher-resolution reference or face crop, and add a face-embedding metric.
+
+## 2026-10-16: Identity consistency, arm B (Qwen-Image-Edit-2511 from a reference, no LoRA) vs arm A
+- **Config B:** Edit-2511 int8 (hash above); reference = one baseline character image (a mirror selfie); same 20 scenes and seeds 9001–9020; 1088x1408, 25 steps, cfg 4.0, shift 3.1; no LoRA (the 2.1 LoRA is incompatible with the Edit base). Script: `scripts/idexp_edit.py`.
+- **Speed:** A takes 8.0–8.5 s per image; B takes 43.6–44.6 s per image, about 5.4× slower.
+- **Scoring:** the automatic judge was SKIPPED/PENDING (VLM server stopped, and the earlier judge failed its negative control). The read below is a visual review only.
+- **Arm A (LoRA):** face identity is stable across all 20 scenes. Drift: the body is rendered curvier than specified despite negatives, she reads somewhat older than intended, and there is a strong "posed portrait" look.
+- **Arm B (Edit):** scene and prompt adherence is more varied and more candid. But identity is looser: face shape and age vary, and some outputs look like a different person. B also copies the reference composition (a phone or mirror-selfie pose shows up in about 9/20 scenes). It is over-exposed and over-sharpened with blown highlights and saturated colour, and has occasional skin artifacts.
+- **Verdict:** A is better for identity (works), B is partial. Edit-from-one-reference doesn't replace a LoRA for identity, but it's useful for making new views (see the char01 test).
+- **Next:** use a neutral frontal reference (not a selfie) for Edit, try cfg 2.5–3 or fewer steps to reduce over-processing, consider a Lightning LoRA for speed, and add an ArcFace similarity metric.
