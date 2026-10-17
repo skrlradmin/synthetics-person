@@ -374,3 +374,16 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
   - 06: frontal wording plus "head turned only a few degrees".
   - Image-right three-quarter: target 30-35° and consider a second reference image (an accepted image-right three-quarter view). This needs approval because it changes the fixed single-reference setup.
   - 24: "camera slightly below eye level" with the original neutral outfit.
+
+## 2026-10-17: char01 pilot v1 top-up round 2 (approved; in progress)
+- **Setup:** unchanged single-reference Edit-2511 workflow (canon only, CFGNorm + VAE-encoded start, 40 steps, cfg 2.5, no LoRA). Thresholds unchanged. 160 new seeds over 11 slots: 16 each for 20/21/22, 14 each for 06, 11, 12, 18, 19, 24, V2, V4.
+- **Slot corrections (prompt-side):**
+  - 20-22 redefined from full body to knees-up ("framed from the knees up, camera a few meters away") with new outfits and settings. Still scored raw and on the upscaled face crop.
+  - Half body 18, 19, V4: the prompt asks for about 18° while the scoring target stays 30° (new `prompt_yaw` slot field), plus "camera at a distance, framed from the waist up, hands visible".
+  - 06: frontal wording plus "head turned only a few degrees" (new `direction_text` field).
+  - 11, 12, V2 retargeted to 35/30/35° with nose-direction wording.
+  - 24: "camera slightly below eye level" with the original neutral outfit.
+- **v1 runner-ups for the demoted slots (visual check on full-res face crops, no generation):**
+  - Slot 01: promoted one runner-up with a single image-right cheek mark and no near-duplicate of any selection (max cos 0.935). The other two have extra marks.
+  - Slot 17: both runner-ups have extra moles and are framed chest-up rather than waist-up, so the slot stays unfilled.
+- **Scripts:** `gen_pilot_topup2.py`, `filter_pilot_topup2.py` (logic unchanged) and `report_pilot_topup2.py`. The new report script merges N sources in precedence order through a manifest, with visual and decision notes applied in order.
