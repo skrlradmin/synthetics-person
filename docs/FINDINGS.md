@@ -326,3 +326,16 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
   - ai-toolkit `qwen_image` with qfloat8, low_vram, cached TE and gradient checkpointing is estimated at 24-27 GB VRAM at 1024 px. Peak RAM is about 42-46 GB while quantizing on the CPU.
   - Download needed: the diffusers repo Qwen/Qwen-Image-2512, 57.7 GB. Alternatively, the ComfyUI bf16 DiT (40.86 GB) plus diffusers TE, VAE and tokenizer (about 16.9 GB). The local fp8 TE and the Edit-2511 DiT cannot substitute.
 - Canon sha256 unchanged.
+
+## 2026-10-16: char01 pilot v1 top-up (approved corrections; in progress)
+- **Generation:** same Edit-2511 workflow and settings as pilot v1 (single canon reference, CFGNorm + VAE-encoded start, 40 steps, cfg 2.5, no LoRA), new seeds only. 210 seeds over the 16 unfilled slots: 16 each for three-quarter 08/11/12, 14 each for full body 20/21/22, and 12 each for 03, 04, 06, 13, 18, 19, 24, V1, V2, V4.
+  - New script: `scripts/gen_pilot_topup.py`. The slot file carries its own prompt text and a per-slot `seed_base`. It checks the reference hash, uses bounded retries per seed, and is resumable.
+- **Prompt corrections:**
+  - Milder expressions (slight or soft smile, or relaxed).
+  - Neutral soft light, with no warm, hard or rim light and no colour casts.
+  - Varied outfits and settings instead of the grey T-shirt on a studio backdrop.
+  - Explicit nose-direction wording on turned views ("her nose points toward the right edge of the image").
+- **Scoring:** `scripts/filter_pilot_topup.py` uses the same thresholds as v1 (0.85/0.75/0.68 by yaw band, >50° to manual review with a 0.45 floor, direction ±15°, near-duplicate cos ≥ 0.97 and pHash ≤ 8). The near-duplicate check also runs against the earlier dataset's accepted, review and validation images.
+  - New: every image also gets a face-crop score, computed scoring-only without editing the image. The face is cropped as a square with 50 % margin, upscaled to 512 px with Lanczos, re-detected and embedded. Full-body slots are decided on the crop score. Raw scores are always recorded.
+- **Early finding (v1 full-body re-score, report only):** on the 28 v1 full-body candidates (faces about 105-140 px), the crop score differs from the raw score by at most about 0.05. Zero of 28 pass either way. Low full-body identity is therefore real drift at small face scale, not a detector-resolution artifact.
+- **Merge:** `scripts/report_pilot_topup.py` builds a combined slot view (manifest plus symlinks; earlier files are never moved). It also writes per-image acceptance tables, per-category stats, contact sheets and a summary.
