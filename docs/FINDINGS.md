@@ -339,3 +339,38 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
   - New: every image also gets a face-crop score, computed scoring-only without editing the image. The face is cropped as a square with 50 % margin, upscaled to 512 px with Lanczos, re-detected and embedded. Full-body slots are decided on the crop score. Raw scores are always recorded.
 - **Early finding (v1 full-body re-score, report only):** on the 28 v1 full-body candidates (faces about 105-140 px), the crop score differs from the raw score by at most about 0.05. Zero of 28 pass either way. Low full-body identity is therefore real drift at small face scale, not a detector-resolution artifact.
 - **Merge:** `scripts/report_pilot_topup.py` builds a combined slot view (manifest plus symlinks; earlier files are never moved). It also writes per-image acceptance tables, per-category stats, contact sheets and a summary.
+
+## 2026-10-17: char01 pilot v1 top-up results (210 gens, 3.0 h GPU)
+- **Run:** 210/210 succeeded, about 51.6 s per image, no retries needed. Canon sha256 unchanged. Thresholds unchanged. Combined view built by `scripts/report_pilot_topup.py` from a manifest; earlier files were not moved.
+- **Visual checks (`--visual`):** two v1 picks were demoted to review.
+  - The v1 frontal 01 pick has multiple beauty marks.
+  - The v1 half-body 17 pick has an extra chin mole and uncertain body geometry.
+  - All top-up picks show a single image-right cheek mark where it should be visible, with no anatomy or texture defects.
+- **Combined fill:** 9/24 training slots, 1/4 validation. 10 images in manual review: 6 profile, two three-quarter right at yaw about 51°, and one validation at 52°.
+
+  | category | filled | v1 pass | top-up pass | combined pass |
+  |---|---|---|---|---|
+  | frontal | 4/6 | 18% | 14% | 16% |
+  | three-quarter | 4/6 | 15% | 17% | 16% |
+  | profile | 0/4 (all in review) | 18% | 42% | 26% |
+  | half body | 0/3 | 21% | 0% | 10% |
+  | full body | 0/3 | 0% | 0% | 0% |
+  | camera variation | 1/2 | 6% | 0% | 4% |
+  | validation | 1/4 | 10% | 6% | 8% |
+
+- **What worked:**
+  - Milder expression plus neutral soft light and new outfits/settings filled frontal 03 (cos 0.853, v1 best 0.725) and 04 (3 passes, v1 none) and validation V1 (0.939).
+  - Nose-direction wording filled three-quarter image-left 08 (yaw -40, cos 0.682) and cut direction errors for 08 and 12 to 1/16 each.
+  - Profile direction pass rate rose to 42%, although outputs under-rotate to about 65-76°.
+- **What did not work:**
+  - **Full body:** 0/42. The upscaled face-crop score was essentially identical to the raw score (mean 0.419 vs 0.419; v1 re-score 0/28 either way). Low full-body identity is real drift at small face scale (about 110 px), not a detector-resolution artifact.
+  - **Half body:** 0/36. The model frames tighter than waist-up and overshoots yaw by 15-30° (18: 9/12 wrong direction).
+  - **Near-front 06 (target 10°):** the turn wording overshoots to 20-42° in 9/12.
+  - **Three-quarter image-right 11/12 and validation V2:** identity stays below the band thresholds (best in-band 0.66-0.73). The only direction-valid picks sit just over 50° and go to manual review.
+  - **Low-angle 24:** 0/12, best 0.716.
+- **Recommended corrections (no threshold change):**
+  - Full body: switch to knees-up framing, or generate full body only after a first LoRA trained on the close-up/half-body set.
+  - Half body: write about 15-20° when 30° is wanted, and add "camera at a distance, framed from the waist up".
+  - 06: frontal wording plus "head turned only a few degrees".
+  - Image-right three-quarter: target 30-35° and consider a second reference image (an accepted image-right three-quarter view). This needs approval because it changes the fixed single-reference setup.
+  - 24: "camera slightly below eye level" with the original neutral outfit.
