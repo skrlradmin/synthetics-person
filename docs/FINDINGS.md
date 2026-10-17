@@ -310,3 +310,19 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
     - The s5101 beauty mark sits on the image-left cheek (subject's right), the wrong side vs spec. s5102's is faint.
   - As expected for t2i without a LoRA, the faces are a different person from canon s1103. This confirms the need for a character LoRA.
 - Canon sha256 unchanged.
+
+## 2026-10-16: char01 LoRA pilot dataset v1 (Edit-2511, no LoRA): 8/24 slots filled, top-up needed
+- **Config:** approved Edit-2511 workflow (int8 convrot, canon s1103 as image1, CFGNorm, 40 steps, cfg 2.5, 1088x1408), 200 seeds across 24 training slots + 4 validation slots (`templates/pilot_v1_slots.json`, `scripts/gen_pilot_dataset.py`). About 52 s per image, peak VRAM about 30 GB.
+- **Filter:** `scripts/filter_pilot_dataset.py`. ArcFace per yaw band 0.85/0.75/0.68, >50° to manual review, direction ±15°, near-duplicate cos ≥ 0.97 and pHash ≤ 8. Thresholds unchanged.
+- **Result:** 8 slots filled provisionally and 3 profiles in review; 13 unfilled. Validation: only V3 (profile, review).
+  - Auto-gate pass rates: frontal 18%, three-quarter left 31%, three-quarter right 7%, half body 13%, full body 0%, camera variation 6%.
+  - Rejection reasons: identity 141, wrong direction 67, near-duplicate 2.
+- **Causes:**
+  - Smiling expressions and warm or hard light pull identity down.
+  - Three-quarter image-right outputs often turn the wrong way.
+  - Full-body faces are too small for ArcFace.
+- **Next:** a targeted top-up of about 190 generations: milder expressions, nose-direction wording for three-quarter views, and full body scored on an upscaled face crop or reframed to knees-up. No threshold relaxation. Details are in `docs/pilot_v1_summary.md`.
+- **Training prep (not run):** `docs/pilot_v1_memory_check.md` and `templates/train_char01_pilot_v1_draft.yaml`.
+  - ai-toolkit `qwen_image` with qfloat8, low_vram, cached TE and gradient checkpointing is estimated at 24-27 GB VRAM at 1024 px. Peak RAM is about 42-46 GB while quantizing on the CPU.
+  - Download needed: the diffusers repo Qwen/Qwen-Image-2512, 57.7 GB. Alternatively, the ComfyUI bf16 DiT (40.86 GB) plus diffusers TE, VAE and tokenizer (about 16.9 GB). The local fp8 TE and the Edit-2511 DiT cannot substitute.
+- Canon sha256 unchanged.

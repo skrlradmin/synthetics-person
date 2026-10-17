@@ -1,0 +1,76 @@
+# DRAFT, NOT RUN. char01 identity LoRA pilot on Qwen-Image-2512 via ai-toolkit (arch qwen_image).
+# Low-risk settings: conservative LR, modest rank, frequent checkpoints, fixed validation prompts.
+# Paths are placeholders (fill in locally; never commit real paths).
+job: extension
+config:
+  name: char01_pilot_v1_r16
+  process:
+    - type: sd_trainer
+      training_folder: <OUTPUT_DIR>
+      device: cuda:0
+      trigger_word: "chr01woman"          # rare token; prepended to every caption
+      network:
+        type: lora
+        linear: 16                         # rank
+        linear_alpha: 16                   # alpha = rank -> scale 1.0
+      save:
+        dtype: bf16
+        save_every: 250                    # checkpoint interval
+        max_step_saves_to_keep: 8
+      datasets:
+        - folder_path: <DATASET_DIR>       # accepted images + .txt captions (same basename)
+          caption_ext: txt
+          caption_dropout_rate: 0.05
+          shuffle_tokens: false
+          cache_latents_to_disk: true
+          resolution: [1024]               # 1328 omitted: ~29-31 GB est., too little headroom
+      train:
+        batch_size: 1
+        steps: 2000                        # ~83 epochs over 24 images; review every 250 and expect best 1000-1750
+        gradient_accumulation: 1
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true
+        noise_scheduler: flowmatch
+        optimizer: adamw8bit
+        lr: 0.00008                        # below the 1e-4 default for lower overfit risk
+        lr_scheduler: constant_with_warmup
+        lr_warmup_steps: 100
+        timestep_type: weighted
+        dtype: bf16
+        cache_text_embeddings: true        # TE unloaded after caching
+        ema_config: {use_ema: false}
+      model:
+        arch: qwen_image
+        name_or_path: Qwen/Qwen-Image-2512 # or local qwen_image_2512_bf16.safetensors (see memory_check.md)
+        extras_name_or_path: Qwen/Qwen-Image-2512   # TE/VAE/tokenizer, diffusers layout
+        quantize: true
+        qtype: qfloat8
+        quantize_te: true
+        qtype_te: qfloat8
+        low_vram: true
+        layer_offloading: false
+      sample:
+        sampler: flowmatch
+        sample_every: 250
+        width: 1024
+        height: 1328
+        seed: 4242
+        walk_seed: false
+        guidance_scale: 4
+        sample_steps: 30
+        neg: "collage, multiple views, text, heavy makeup, beauty filter, plastic skin, cartoon, CGI, deformed"
+        prompts:                            # fixed validation prompts, mirroring held-out V1-V4 (never trained)
+          - "chr01woman, head-and-shoulders portrait, facing the camera, neutral expression, cool overcast daylight, city street"
+          - "chr01woman, head-and-shoulders portrait, head turned toward image-right, natural smile, warm indoor light, cafe"
+          - "chr01woman, head-and-shoulders, full side profile facing image-left, neutral expression, soft daylight, plain wall"
+          - "chr01woman, half-body photo from the waist up, turned slightly toward image-left, relaxed, overcast daylight, park"
+          - "a woman, head-and-shoulders portrait, facing the camera, soft daylight"   # leakage control (no trigger)
+meta:
+  name: char01_pilot_v1
+  version: "0.1-draft"
+# Caption scheme (one .txt per image):
+#   "chr01woman, <framing>, <view: facing camera | three-quarter toward image-left/right | profile facing image-left/right>,
+#    <expression>, <lighting>, <setting>, <outfit>"
+# Describe only what varies (pose, light, clothes, setting). Do NOT describe identity traits
+# (eye colour, freckles, beauty mark, hair) so they bind to the trigger token.
