@@ -387,3 +387,34 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
   - Slot 01: promoted one runner-up with a single image-right cheek mark and no near-duplicate of any selection (max cos 0.935). The other two have extra marks.
   - Slot 17: both runner-ups have extra moles and are framed chest-up rather than waist-up, so the slot stays unfilled.
 - **Scripts:** `gen_pilot_topup2.py`, `filter_pilot_topup2.py` (logic unchanged) and `report_pilot_topup2.py`. The new report script merges N sources in precedence order through a manifest, with visual and decision notes applied in order.
+
+## 2026-10-18: char01 pilot v1 top-up round 2 results (160 gens, 2.3 h GPU)
+- **Run:** 160/160 succeeded, no retries. Canon sha256 unchanged. Thresholds unchanged.
+  - Visual checks were applied with `report_pilot_topup2.py --notes`. The report was regenerated off the GPU host; it needs only the scored JSON files, per-image metadata and the existing thumbnails.
+- **Combined fill (v1 + top-up + top-up 2, manifest only):** 14/24 training slots, 1/4 validation.
+  - New this round: three-quarter right 12 (yaw 36, cos 0.684), half body 18 (yaw -45, 0.703), half body 19 (yaw 44, 0.712) and low-angle 24 (yaw -1, 0.947).
+  - Frontal 01 refilled with a visually checked v1 runner-up. Slot 17's runner-ups failed the visual check (extra moles, chest-up framing).
+- **Pass rates, round 2 / combined:**
+
+  | category | round 2 | combined |
+  |---|---|---|
+  | frontal (06 only) | 0/14 | 13% |
+  | three-quarter | 1/28 | 13% |
+  | half body | 2/28 | 9% |
+  | knees-up (20-22) | 0/48 | 0% |
+  | camera variation | 1/14 | 5% |
+  | validation | 0/28 | 5% |
+
+- **Findings:**
+  - **Knees-up:** the prompt still renders mid-thigh to waist-up framing. Faces are larger (mean 230 px vs about 115 px full body), and raw cos rose from 0.42 to 0.57, but nothing reaches threshold (best 0.707 frontal vs 0.85 required). The face-crop score again matched the raw score (0.573 vs 0.574).
+  - **Halved head-turn wording (18° in the prompt for a 30° target):** outputs still land at about 40-60° (19: 12/14 too steep), so head turns in half-body shots overshoot regardless of the stated angle.
+  - **06:** the frontal wording fixed direction (11/14 within ±15°), but identity stayed low (0.59-0.75) with a slight smile in a street setting.
+  - **Retargeting 11/V2 to 35°:** did not lift identity (best in-band 0.63-0.67). About half flipped direction (11: 7/14).
+  - **24:** "camera slightly below eye level" plus the original outfit filled the slot (0.947), but the camera angle reads only slightly low.
+- **Remaining shortages and suggested corrections (thresholds unchanged):**
+  - 06: neutral mouth-closed expression and a plain indoor setting, as in the 03/04 picks that filled.
+  - 11, V2: the single-reference setup appears to plateau for image-right three-quarter views. Either reconsider a second reference, or defer to a first LoRA trained on the filled slots.
+  - 17: regenerate with a neutral outfit and an explicit "waist-up, arms relaxed at her sides, camera at a distance".
+  - 20-22: defer to after a first LoRA, or accept a waist-up redefinition.
+  - V4: the same overshoot fix as half body; ask for frontal-ish "head turned slightly" and keep the ±15° gate.
+  - Profiles 13-16 and V3 still await manual review.
