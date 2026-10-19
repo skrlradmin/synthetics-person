@@ -418,3 +418,16 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
   - 20-22: defer to after a first LoRA, or accept a waist-up redefinition.
   - V4: the same overshoot fix as half body; ask for frontal-ish "head turned slightly" and keep the ±15° gate.
   - Profiles 13-16 and V3 still await manual review.
+
+## 2026-10-18…19: Character B stills stack (Qwen-Image 2.1 + LoRA)
+
+- **Goal:** lock a reusable stills recipe for a fictional character LoRA (`character B`) on Qwen-Image 2.1 int8, including Turbo drafts and pose control.
+- **Stack:** Qwen-Image 2.1 int8 + matching VAE + qwen3vl_8b TE; character LoRA rank 32 / ~3000 steps; Fun ControlNet Union for pose; optional Turbo int8 (official Comfy-Org, sha starts `8144a018`).
+- **Timing (832×1216, models warm, 32 GB class GPU):** base 25 steps cfg 3 ≈ 9 s; Turbo 8 steps cfg 1 ≈ 2 s; base + pose CN ≈ 11–12 s; face pass adds ≈ 8 s.
+- **Bust / proportion findings:** LoRA ~0.9 with stacked size wording matches a larger look but often yields round/augmented busts. Soft cue (`natural DDD proportions`) + proportion negatives + LoRA **0.7–0.8** yields softer, more natural shape but smaller volume. Stacked size adjectives alone do not recover DDD volume once pose CN + negatives hold the pose. **Decision (2026-10-19):** keep DDD as a soft cue only; LoRA **0.8 clothed / 0.7 when size cue is active**; do not stack size words.
+- **Pose CN:** strength ~0.8, end 0.5, map from own renders — best match for selfie framing. Edit-mode multi-ref images hurt (posed look, re-inflated bust, slower).
+- **Face pass:** crop → img2img denoise 0.3 works; Impact FaceDetailer crashes on this conditioning path.
+- **Turbo:** identity holds at same seed vs base; use for drafts; finals on base (smoother skin / weaker fine detail on Turbo). Unofficial Turbo files can fail model-type detection.
+- **Multi-person complex poses:** ControlNet often drops secondary contacts or rotates the subject; needs better skeletons or masked inpaint — not solved in this pass.
+- **Verdict:** recipe documented in `docs/studio_workflow.md`.
+- **Next:** optional depth ControlNet weights (download needs explicit OK); continue pose-map hygiene (synthetic-only maps).
