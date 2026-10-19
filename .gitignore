@@ -37,3 +37,8 @@ venv/
 .DS_Store
 config.local.yaml
 *.local.yaml
+# audio
+*.wav
+*.mp3
+*.m4a
+*.flac

@@ -1,0 +1,17 @@
+# Copy to config.local.yaml (gitignored) or put the same values in a gitignored .env.
+# Never commit real paths, reference clips or generated audio.
+tts:
+  tts_dir: "<TTS_DIR>"                                   # Qwen3-TTS venv + models live here
+  model_dir: "<TTS_DIR>/models/Qwen3-TTS-12Hz-1.7B-Base"
+  voicedesign_dir: "<TTS_DIR>/models/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
+  tokenizer_dir: "<TTS_DIR>/models/Qwen3-TTS-Tokenizer-12Hz"
+  ref_wav: "<PROJECT_DIR>/inputs/voice_ref.wav"          # synthetic voice you have rights to, ~15-20 s
+  ref_text: ""                                           # exact transcript; empty = x-vector-only mode
+  language: "English"
+  base_seed: 1234
+v2v:
+  seedvc_dir: "<SEEDVC_DIR>"                             # clone of Plachtaa/seed-vc at the pinned commit
+  target_wav: "<PROJECT_DIR>/inputs/voice_ref.wav"       # narrator voice reference for conversion
+  diffusion_steps: 30
+  length_adjust: 1.0
+  inference_cfg_rate: 0.7

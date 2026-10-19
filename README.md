@@ -19,6 +19,7 @@ Outputs are judged in this order: identity across angles, then photographic real
 - [docs/acceptance_criteria.md](docs/acceptance_criteria.md): quality-first acceptance criteria and hard-reject rules
 - [docs/studio_workflow.md](docs/studio_workflow.md): Qwen-Image 2.1 studio stills recipe (LoRA, Turbo drafts, pose control)
 - [docs/FINDINGS.md](docs/FINDINGS.md): experiment log
+- [history_project/voice/](history_project/voice/README.md): synthetic narrator voice workflow (Qwen3-TTS text-to-speech, Seed-VC voice-to-voice)
 - [docs/licenses.md](docs/licenses.md): model licenses
 - [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 - `templates/`: character spec and prompt templates

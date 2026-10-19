@@ -431,3 +431,18 @@ Sources: HF Qwen/Qwen-Image-2512 (model card and file tree), Comfy-Org/Qwen-Imag
 - **Multi-person complex poses:** ControlNet often drops secondary contacts or rotates the subject; needs better skeletons or masked inpaint — not solved in this pass.
 - **Verdict:** recipe documented in `docs/studio_workflow.md`.
 - **Next:** optional depth ControlNet weights (download needs explicit OK); continue pose-map hygiene (synthetic-only maps).
+
+## 2026-10-19: Voice workflow for history_project (Qwen3-TTS + Seed-VC)
+- **Goal:** one consistent, fully synthetic narrator voice, both from text (TTS) and from a human performance (voice-to-voice). Full workflow: [history_project/voice/README.md](../history_project/voice/README.md).
+- **Hardware:** Windows GPU box, 12 GB (RTX 4070 Super).
+- **TTS: Qwen3-TTS (Apache-2.0).** qwen-tts 0.1.1, torch 2.8.0+cu128, Python 3.12, transformers 4.57.3, sdpa attention (no flash-attn). Models: 12Hz-1.7B-Base (clone), 1.7B-VoiceDesign, Tokenizer-12Hz.
+  - Clone from a ~15–20 s reference clip of a synthetic voice, trimmed at a quiet point. x-vector-only mode when there is no transcript; ICL mode with `ref_text` matches more closely.
+  - Script runner: one generation per blank-line paragraph, fixed seed per paragraph, voice prompt built once and reused, 0.4 s gaps, 24 kHz WAV, words/sec check 1.6–4.0 with one reseeded retry.
+  - **Measured:** load 2.6 s; ~1.36–1.46× realtime (85 s for 62.6 s of audio); peak VRAM ~4.2–4.3 GB.
+  - **Limit:** the Base clone path has no instruct, speed or emotion controls (checked in the qwen-tts source). Only VoiceDesign and CustomVoice take `instruct`, and CustomVoice only has preset speakers. Levers for a cloned voice: reference clip style, punctuation, temperature / subtalker_temperature plus picking the best take, and a 0.9–1.15× time-stretch afterwards. Whether `instruct` works on a fine-tuned `custom_voice` speaker (finetuning/sft_12hz.py) is unverified.
+- **V2V: Seed-VC (GPL-3.0 code and weights; repo archived 2025-04-20; pinned commit 51383efd).** Own venv, Python 3.12.10, torch 2.8.0+cu128; requirements otherwise as pinned. Windows needed webrtcvad-wheels and `resemblyzer --no-deps`. About 8 GB to download.
+  - **v1** (`inference.py`, 30 diffusion steps, cfg rate 0.7, no f0, fp16): RTF ~0.14 (6.2 s for 43 s), ~2.1 GB extra VRAM.
+  - **v2:** 25–34 s for the same clip, ~3.6–3.8 GB.
+  - The project owner preferred v1 in a listening test. A quiet 16 kHz source limits quality: record loud, close-mic, at 44.1 kHz or higher, without clipping.
+- **Verdict:** works. Qwen3-TTS Base clone for narration, Seed-VC v1 for acted lines.
+- **Next (planned, untested):** Applio (MIT, RVC fork, v3.7.0) trained on 30–60 min of TTS narrator audio for production V2V.
